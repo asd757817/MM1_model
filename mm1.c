@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <time.h>
 
+// define customer structure
 typedef struct {
 	struct node *next;
 	double it;
@@ -14,32 +15,39 @@ typedef struct {
 	double end_syst;
 } node;
 
-
+// define queue
 typedef struct {
 	node *head; 
 } queue;
 
-queue *q_new();
-bool q_insert(queue *q, double it, double st);
-double rand_exp(double lambda);
-void calculate(queue *q);
-void extract_data(queue *q);
-void estimate_pn(queue *q);
-double lambda,mu;
+queue *q_new(); // create a new queue
+bool q_insert(queue *q, double it, double st); // insert node into queue
+double rand_exp(double lambda); // generate exponential RV with lambda rate
+void calculate(queue *q); // calculate the results
+void estimate_pn(queue *q); // calculate Pn
+double lambda,mu; 
 int samples;
-double dt = 0;
+double dt = 0; //departure time;the same as total simulation time after runing all samples
 
 int main(){
 	srand((unsigned)time(NULL));
+	// define parameters
 	lambda = 1;
 	mu = 2;
 	samples = 1000000;
 	queue *q= q_new();
-
+	
+	// generate customers
 	for(int i=0;i<samples;i++){
-		q_insert(q, rand_exp(lambda), rand_exp(mu));
+		if(q_insert(q, rand_exp(lambda), rand_exp(mu)))
+			continue;
+		else
+			printf("Inset node failed !\n");
 	}
+
 	calculate(q);
+
+	// expected value 
 	double rho = lambda / mu;
 	printf("\n========Expect========\n");
 	printf("Nq: %f\n", rho*rho / (1 - rho));
@@ -94,15 +102,19 @@ double rand_exp(double lambda){
 }
 
 void calculate(queue *q){
+	// save information to a file
 	//FILE *fp = fopen("test.txt", "w");
 	double t = 0;
 	double wt = 0; // waiting time
 	double system_time = 0; // service time
 	double in_queue=0; // number of customers in queue;
 	double total_system_time=0; // total time in system
-	double total_wt = 0;
+	double total_wt = 0; // total wating time
+
+	// trace all nodes in the queue
 	node *tmp = q->head;
 	while(tmp){
+		// don't need to wait,set waiting time=0, start_wait = end_wait 
 		if(t + tmp->it >= dt){
 			tmp->start_wt = t + tmp->it;
 			tmp->end_wt = t + tmp->it;
@@ -120,7 +132,7 @@ void calculate(queue *q){
 		dt = t + system_time;
 		tmp->start_syst = t;
 		tmp->end_syst = dt;
-		fprintf(fp, "%f %f %f %f \n", tmp->it, tmp->st, wt, tmp->start_syst, tmp->end_syst);
+		//fprintf(fp, "%f %f %f %f \n", tmp->it, tmp->st, wt, tmp->start_syst, tmp->end_syst);
 		tmp = tmp->next;
 	}
 
@@ -167,7 +179,8 @@ void estimate_pn(queue *q){
 
 	FILE *fp = fopen("pn.txt", "w");
 	double p0 = 1 - (lambda / mu);
-	for(int x=1;x<=100;x++){
+	int N = 10; // Pn
+	for(int x=1;x<=N;x++){
 		double pn = p0;
 		for(int i=1;i<=x;i++){
 			pn *= lambda / mu;
