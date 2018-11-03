@@ -1,4 +1,6 @@
-# M/M/1 simulation
+# README
+This is a simulation for M/M/1 model
+
 ## Usage
 ```
 $ sudo apt update
