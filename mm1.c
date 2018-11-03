@@ -102,38 +102,47 @@ double rand_exp(double lambda){
 }
 
 void calculate(queue *q){
-	// save information to a file
+	// uncomment if you want to save information to a file
 	//FILE *fp = fopen("test.txt", "w");
-	double t = 0;
-	double wt = 0; // waiting time
-	double system_time = 0; // service time
-	double in_queue=0; // number of customers in queue;
+	double t = 0;				// time variable
+	double wt = 0; 				// waiting time
+	double system_time = 0; 	// service time
+	double in_queue=0; 			// number of customers in queue;
 	double total_system_time=0; // total time in system
-	double total_wt = 0; // total wating time
+	double total_wt = 0; 		// total wating time
 
 	// trace all nodes in the queue
 	node *tmp = q->head;
 	while(tmp){
-		// don't need to wait,set waiting time=0, start_wait = end_wait 
+		/* 
+		   Don't need to wait,set waiting time=0, start_wait = end_wait
+		   When customer enters the system,he starts to wait.
+		   start_wait = the time customer entered the system.
+		   t: the time last customer entered the system
+		*/
 		if(t + tmp->it >= dt){
 			tmp->start_wt = t + tmp->it;
-			tmp->end_wt = t + tmp->it;
 			wt = 0;
 		}
+		/*
+			Need to wait. end_wait = the time last customer left the system
+		*/
 		else{
 			tmp->start_wt = t + tmp->it;
 			tmp->end_wt = dt;
 			wt = dt - (t + tmp->it);
 		}
-		total_wt += tmp->end_wt - tmp->start_wt;
-		system_time = wt + tmp->st;
-		total_system_time += wt + tmp->st;
-		t += tmp->it;
-		dt = t + system_time;
-		tmp->start_syst = t;
-		tmp->end_syst = dt;
+		total_wt += tmp->end_wt - tmp->start_wt;	// total waiting time
+		system_time = wt + tmp->st;					// the time customer stays in the system
+		total_system_time += wt + tmp->st;			// total time customers stay in the system
+		t += tmp->it;			// update time 
+		dt = t + system_time;	// update departure time
+		tmp->start_syst = t;	// the time this customer entered the system
+		tmp->end_syst = dt;		// the time this customer left the system
+
+		// uncomment if you want to record the data
 		//fprintf(fp, "%f %f %f %f \n", tmp->it, tmp->st, wt, tmp->start_syst, tmp->end_syst);
-		tmp = tmp->next;
+		tmp = tmp->next;	// go to next node
 	}
 
 	printf("========Simulation========\n");
@@ -146,22 +155,37 @@ void calculate(queue *q){
 
 void estimate_pn(queue *q){
 	node *now_tmp = q->head;
-	double b[10000];
-	int n_in_system = 0;
-	double t_start = 0;
-	double t_end = 0;
+	double b[10000];		// Set MAX N to 10000, record Pn (simulation results)
+	int n_in_system = 0;	// Numbers of people in the system
+	double t_start = 0;		// time interval start
+	double t_end = 0;		// time interval end
 
-	for(int i=0;i<50;i++){
+	// Initialization
+	for(int i=0;i<1000;i++){
 		b[i]=0;
 	}
-
+	
+	// trace all nodes
 	while(now_tmp){
+		/*
+			Customer enters system ,numbers of people in system +1
+			Set time interval start = the time customer entered system
+		*/
 		if(t_start <= now_tmp->start_syst){
 			n_in_system += 1;
 			t_start = now_tmp->start_syst;
 		}
+		/*
+			Check if other customer enter system before this customer leave
+		*/
 		node *next_tmp = now_tmp->next;
 		while(next_tmp && (next_tmp->start_syst < now_tmp->end_syst)){
+			/*
+				Someone enters system before this customer leave.
+				Record the time between this customer entered system and next customer comes.
+				(t_end = new customer's arrival time)
+				Then n_in_system+1, set time interval start = the time last customer comes
+			*/
 			if(t_start <= next_tmp->start_syst){
 				t_end = next_tmp->start_syst;
 				b[n_in_system] += t_end - t_start;
@@ -170,22 +194,24 @@ void estimate_pn(queue *q){
 			}
 			next_tmp = next_tmp->next;
 		}
-		t_end = now_tmp->end_syst;
-		b[n_in_system] += t_end - t_start;
-		t_start = now_tmp->end_syst;
-		n_in_system -= 1;
-		now_tmp = now_tmp->next;
+		t_end = now_tmp->end_syst;			// this customer's departing time
+		b[n_in_system] += t_end - t_start;	// record time interval
+		t_start = now_tmp->end_syst;		// move time interval
+		n_in_system -= 1;					// customer left 
+		now_tmp = now_tmp->next;		
 	}
-
+	// Save data to a file for plotting a graph
 	FILE *fp = fopen("pn.txt", "w");
-	double p0 = 1 - (lambda / mu);
-	int N = 10; // Pn
-	for(int x=1;x<=N;x++){
+	double p0 = 1 - (lambda / mu);	// defind P0
+	int N = 10; 					// set N,PN
+	// Show P0 ~ PN
+	for(int x=1;x<=N;x++){			
 		double pn = p0;
 		for(int i=1;i<=x;i++){
 			pn *= lambda / mu;
 		}
 		printf("P%d -> Simulation: %f Expect: %f\n", x, b[x]/dt, pn);
-		fprintf(fp, "%d %f %f \n", x, -log(b[x]/dt) , -log(pn));
+		//fprintf(fp, "%d %f %f \n", x b[x]/dt, pn); 
+		fprintf(fp, "%d %f %f \n", x, -log(b[x]/dt) , -log(pn)); // log scale
 	}
 }
