@@ -32,9 +32,9 @@ double dt = 0; //departure time;the same as total simulation time after runing a
 int main(){
 	srand((unsigned)time(NULL));
 	// define parameters
-	lambda = 1;
-	mu = 2;
-	samples = 1000000;
+	lambda = 0.99;
+	mu = 1;
+	samples = 10000000;
 	queue *q= q_new();
 	
 	// generate customers
@@ -161,7 +161,7 @@ void estimate_pn(queue *q){
 	double t_end = 0;		// time interval end
 
 	// Initialization
-	for(int i=0;i<1000;i++){
+	for(int i=0;i<10000;i++){
 		b[i]=0;
 	}
 	
@@ -188,14 +188,16 @@ void estimate_pn(queue *q){
 			*/
 			if(t_start <= next_tmp->start_syst){
 				t_end = next_tmp->start_syst;
-				b[n_in_system] += t_end - t_start;
+				if(n_in_system < 10000 )
+					b[n_in_system] += t_end - t_start;
 				n_in_system += 1;
 				t_start = next_tmp->start_syst;
 			}
 			next_tmp = next_tmp->next;
 		}
 		t_end = now_tmp->end_syst;			// this customer's departing time
-		b[n_in_system] += t_end - t_start;	// record time interval
+		if(n_in_system < 10000)
+			b[n_in_system] += t_end - t_start;	// record time interval
 		t_start = now_tmp->end_syst;		// move time interval
 		n_in_system -= 1;					// customer left 
 		now_tmp = now_tmp->next;		
@@ -203,7 +205,7 @@ void estimate_pn(queue *q){
 	// Save data to a file for plotting a graph
 	FILE *fp = fopen("pn.txt", "w");
 	double p0 = 1 - (lambda / mu);	// defind P0
-	int N = 10; 					// set N,PN
+	int N = 100; 					// set N,PN
 	// Show P0 ~ PN
 	for(int x=1;x<=N;x++){			
 		double pn = p0;
@@ -211,7 +213,7 @@ void estimate_pn(queue *q){
 			pn *= lambda / mu;
 		}
 		printf("P%d -> Simulation: %f Expect: %f\n", x, b[x]/dt, pn);
-		//fprintf(fp, "%d %f %f \n", x b[x]/dt, pn); 
-		fprintf(fp, "%d %f %f \n", x, -log(b[x]/dt) , -log(pn)); // log scale
+		fprintf(fp, "%d %f %f \n", x ,b[x]/dt, pn); 
+		//fprintf(fp, "%d %f %f \n", x, -log(b[x]/dt) , -log(pn)); // log scale
 	}
 }
