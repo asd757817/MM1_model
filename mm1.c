@@ -32,8 +32,8 @@ double dt = 0; //departure time;the same as total simulation time after runing a
 int main(){
 	srand((unsigned)time(NULL));
 	// define parameters
-	lambda = 0.99;
-	mu = 1;
+	lambda = 1;
+	mu = 2;
 	samples = 10000000;
 	queue *q= q_new();
 	
@@ -205,7 +205,7 @@ void estimate_pn(queue *q){
 	// Save data to a file for plotting a graph
 	FILE *fp = fopen("pn.txt", "w");
 	double p0 = 1 - (lambda / mu);	// defind P0
-	int N = 100; 					// set N,PN
+	int N = 15; 					// set N,PN
 	// Show P0 ~ PN
 	for(int x=1;x<=N;x++){			
 		double pn = p0;
