@@ -32,8 +32,8 @@ double dt = 0; //departure time;the same as total simulation time after runing a
 int main(){
 	srand((unsigned)time(NULL));
 	// define parameters
-	lambda = 1;
-	mu = 2;
+	lambda = 0.99;
+	mu = 1;
 	samples = 10000000;
 	queue *q= q_new();
 	
@@ -122,6 +122,7 @@ void calculate(queue *q){
 		*/
 		if(t + tmp->it >= dt){
 			tmp->start_wt = t + tmp->it;
+			tmp->end_wt = t + tmp->it;
 			wt = 0;
 		}
 		/*
@@ -212,7 +213,7 @@ void estimate_pn(queue *q){
 		for(int i=1;i<=x;i++){
 			pn *= lambda / mu;
 		}
-		printf("P%d -> Simulation: %f Expect: %f\n", x, b[x]/dt, pn);
+		printf("P%d -> Simulation: %f Expect: %f  Error:%f\n", x, b[x]/dt, pn, (pn-b[x]/dt)/pn);
 		fprintf(fp, "%d %f %f \n", x ,b[x]/dt, pn); 
 		//fprintf(fp, "%d %f %f \n", x, -log(b[x]/dt) , -log(pn)); // log scale
 	}
